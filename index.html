@@ -1,0 +1,260 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Für mein Lieblingsmensch</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg-color: #262626;
+        --paper-color: #fffdf7;
+        --accent-color: #c93b3b;
+        --text-color: #333;
+    }
+
+    body {
+        margin: 0; padding: 0; min-height: 100vh;
+        display: flex; justify-content: center; align-items: center;
+        background-color: var(--bg-color);
+        font-family: 'Georgia', serif;
+        overflow: hidden;
+    }
+
+    .scene {
+        position: relative;
+        transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .scene.shift-down { transform: translateY(220px); }
+
+    .envelope-wrapper {
+        position: relative;
+        width: 400px; height: 280px;
+    }
+
+    .inside { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #999; border-radius: 2px; }
+    .flap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    .left-flap { background: #ebebeb; clip-path: polygon(0 0, 50% 50%, 0 100%); z-index: 3; }
+    .right-flap { background: #ebebeb; clip-path: polygon(100% 0, 50% 50%, 100% 100%); z-index: 3; }
+    .bottom-flap { background: #e0e0e0; clip-path: polygon(0 100%, 50% 50%, 100% 100%); z-index: 4; }
+
+    .top-flap { z-index: 5; transform-origin: top; transition: transform 0.6s; transform-style: preserve-3d; }
+    .top-flap-shape { width: 100%; height: 100%; background: #f0f0f0; clip-path: polygon(0 0, 100% 0, 50% 55%); }
+    .envelope-wrapper.open .top-flap { transform: rotateX(180deg); }
+
+    .seal {
+        position: absolute; left: 50%; top: 55%; width: 50px; height: 50px;
+        background: var(--accent-color); border-radius: 50%; transform: translate(-50%, -50%);
+        cursor: pointer; z-index: 10; transition: transform 0.6s;
+    }
+    .envelope-wrapper.open .seal { transform: translate(-50%, -50%) rotateX(180deg); }
+
+    .heart {
+        position: absolute; top: 50%; left: 50%; width: 16px; height: 16px;
+        background: #8a2525; transform: translate(-50%, -50%) rotate(45deg);
+    }
+    .heart::before, .heart::after { content: ''; position: absolute; width: 16px; height: 16px; background: #8a2525; border-radius: 50%; }
+    .heart::before { top: -8px; left: 0; }
+    .heart::after { top: 0; left: -8px; }
+
+    .letter-container {
+        position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+        width: 340px; height: 220px; z-index: 2;
+        transition: transform 0.8s, width 0.5s ease 0.4s, height 0.5s ease 0.4s;
+    }
+
+    .letter-container.fly-out {
+        transform: translateX(-50%) translateY(-280px);
+        width: 450px; height: 580px;
+    }
+
+    .fold {
+        position: absolute; left: 0; width: 100%;
+        height: calc(100% / 3 + 1px);
+        transform-style: preserve-3d; transition: transform 0.8s, opacity 0.3s;
+        background: var(--paper-color);
+        box-sizing: border-box;
+    }
+    .fold.top { top: 0; transform-origin: bottom; transform: translateY(-100%) rotateX(180deg); z-index: 3; }
+    .fold.middle { top: calc(100% / 3); z-index: 1; display: flex; justify-content: center; align-items: center;}
+    .fold.bottom { top: calc(2 * 100% / 3 - 1px); transform-origin: top; transform: translateY(100%) rotateX(-180deg); z-index: 2; }
+
+    /* Das finale Blatt */
+    .final-sheet {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: var(--paper-color); opacity: 0; z-index: 4;
+        display: flex; flex-direction: column;
+        padding: 40px 30px; box-sizing: border-box;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+        pointer-events: none; transition: opacity 0.4s ease;
+        overflow-y: auto;
+    }
+
+    .letter-container.unfolded .final-sheet { opacity: 1; pointer-events: auto; }
+    .letter-container.unfolded .fold { opacity: 0; }
+
+    #text-target {
+        font-family: 'Caveat', cursive;
+        font-size: 23px; line-height: 1.4;
+        color: var(--text-color);
+        white-space: pre-wrap;
+        text-align: left;
+    }
+
+    .btn-read {
+        background: var(--accent-color); color: white; border: none;
+        padding: 12px 24px; border-radius: 25px; cursor: pointer;
+        font-family: 'Georgia', serif; font-style: italic; font-size: 16px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        display: none;
+    }
+    .letter-container.fly-out .btn-read { display: block; }
+    .btn-read:hover { transform: scale(1.05); }
+
+    .fold-back-btn {
+        margin-top: 30px; background: transparent; color: #888; border: 1px solid #ddd;
+        padding: 8px 15px; border-radius: 20px; cursor: pointer; align-self: center;
+        font-family: sans-serif; font-size: 12px; transition: all 0.2s;
+        flex-shrink: 0;
+    }
+    .fold-back-btn:hover { background: #eee; color: #333; }
+
+    @media (max-width: 500px) {
+        .letter-container.fly-out { width: 92vw; height: 75vh; }
+        .scene.shift-down { transform: scale(0.8) translateY(340px); }
+        #text-target { font-size: 20px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="scene" id="scene">
+    <div class="envelope-wrapper" id="envelope">
+        <div class="inside"></div>
+        <div class="letter-container" id="letter">
+
+            <div class="fold top"></div>
+
+            <div class="fold middle">
+                <button class="btn-read" id="openBtn" onclick="unfoldLetter(event)">Brief lesen</button>
+            </div>
+
+            <div class="fold bottom"></div>
+
+            <div class="final-sheet" id="finalSheet">
+                <div id="text-target"></div>
+                <button class="fold-back-btn" id="closeBtn" style="visibility:hidden;" onclick="foldLetter()">Brief Zusammenfalten</button>
+            </div>
+
+        </div>
+
+        <div class="flap left-flap"></div>
+        <div class="flap right-flap"></div>
+        <div class="flap bottom-flap"></div>
+        <div class="flap top-flap">
+            <div class="top-flap-shape"></div>
+            <div class="seal" onclick="toggleEnvelope()">
+                <div class="heart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const fullText = `Happy birthday mein Bebii :33 ❤️
+
+22 Jahre alt jetzt… wtf :,))) Ich weiß noch, wie wir damals zusammengekommen sind, beide schüchtern und noch so unwissend wie schwer Leben sein kann hahahha. Und jetzt sind einfach schon 4 Jahre vergangen. Fühlt sich irgendwie gleichzeitig mega lang und auch gar nicht so lang an.
+
+Ich wünsche dir wirklich von ganzem Herzen ganz viel Gesundheit, Glück und allllllles gute für dein neues Lebensjahr. Aber vor allem wünsche ich dir auch ein bisschen Ruhe im Kopf. Ich weiß, dass gerade vieles nicht einfach ist… Bewerbungen, Arbeit, Familie, allgemein dieser ganze Stress.
+
+Und ich weiß auch, dass Du mit Stress manchmal nicht so gut umgehen kannst. Aber ich will auch, dass du weißt, dass du trotzdem eine der stärksten Personen bist die ich kenne. Wirklich. Du schaffst so viel, auch wenn du es selbst manchmal nicht glaubst. Du könntest dich auch 24/7 ins Zimmer verziehen, Zimmer dunkel machen und depressiv im Zimmer verstecken, aber nooo! Du wachst jeden Tag auf und bewegst dein süßen Po trotzdem zur Arbeit!
+
+Und egal was kommt, ob du wirklich weg ziehen wirst, ich bin immer bei dir und für dich da, zwar nicht mehr immer physisch aber mental. ❤️🫶
+
+4 Jahre sind wir jetzt zusammen. Klar, viele wären traurig das so diese "Anfangszeit" der Beziehung weg ist, als alles so 24/7 Herzchen spammen, wir sehen uns täglich in BFD, und so weiter. Aber was wir jetzt haben, ist irgendwie noch viel krasser finde ich. Dieses Vertrauenm, dieses Gefühl dass man sich einfach komplett kennt und trotzdem immer noch jeden Tag zusammen sein will.
+Das ist für mich so viel wertvoller als alles andere auf dieser Welt. Auch jetzt hab ich Gefühlsexplosionen wenn ich an uns Denke oder du etwas süßsest machst/sagst oder einfach mal wieder cute aussiehst :3
+Bei mir ist es halt nicht so, dass ich wie du vor Freude rum springe und so ein wunderschönesn Lächeln wie du habe aber innerlich vertrau mir Engel, da kneif ich mir auch die Hände vor Aufregung zusammen und spanne mein ganzen Körper an (Wenn ich alleine bin, mach ich das auch manchmal in reallife hahahah)
+
+Ich liebe dich wirklich unendlich doll, Bebii. Und das wird auch für immer so sein :3 "bis der ... uns ........" der rest wird wann anders gesagt hehe 😉❤️
+
+Ich freue mich auf alles, was noch kommt mit dir. Irgendwann zusammen wohnen, jeden Tag nach der Arbeit einfach zu Hause treffen, ohne sich Sorgen machen zu müssen, wann man sich wiedersieht. Einfach DU & ICH in unsere Blöb-Welt :3 ❤️
+
+Du bist mein Engel. Mein Bebii. Mein Lieblingsmensch.
+
+ALLES GUTE ZUM GEBURTSTAG!
+
+Muuuaq
+kisssss
+Huuggg
+biteee
+ilyyyyyyyy
+❤️❤️❤️
+❤️
+🫶
+
+Dein Bubuuu
+
+(VORSICHT WENN DU ZUSAMMENFALTEST, MUSST DU FALLS DU WIEDER LESEN WILLST WIEDER ABWARTEN BIS DIE ANIMATION FERTIG IST! 😂)`;
+
+    let isEnvelopeOpen = false;
+    const envelope = document.getElementById('envelope');
+    const letter = document.getElementById('letter');
+    const scene = document.getElementById('scene');
+    const textTarget = document.getElementById('text-target');
+    const closeBtn = document.getElementById('closeBtn');
+
+    function toggleEnvelope() {
+        if (!isEnvelopeOpen) {
+            envelope.classList.add('open');
+            isEnvelopeOpen = true;
+            setTimeout(() => {
+                letter.classList.add('fly-out');
+                scene.classList.add('shift-down');
+            }, 600);
+            setTimeout(() => { letter.style.zIndex = "10"; }, 1000);
+        }
+    }
+
+    function unfoldLetter(e) {
+        if(e) e.stopPropagation();
+        letter.classList.add('unfolded');
+        setTimeout(startTyping, 800);
+    }
+
+    function startTyping() {
+        textTarget.innerHTML = "";
+        closeBtn.style.visibility = "hidden";
+        let i = 0;
+
+        function type() {
+            if (i < fullText.length) {
+                textTarget.innerHTML += fullText.charAt(i);
+                i++;
+                const sheet = document.getElementById('finalSheet');
+                sheet.scrollTop = sheet.scrollHeight;
+
+                setTimeout(type, 40);
+            } else {
+                closeBtn.style.visibility = "visible";
+            }
+        }
+        type();
+    }
+
+    function foldLetter() {
+        letter.classList.remove('unfolded');
+        setTimeout(() => {
+            textTarget.innerHTML = "";
+            letter.style.zIndex = "2";
+            letter.classList.remove('fly-out');
+            scene.classList.remove('shift-down');
+            setTimeout(() => {
+                envelope.classList.remove('open');
+                isEnvelopeOpen = false;
+            }, 800);
+        }, 500);
+    }
+</script>
+</body>
+</html>
